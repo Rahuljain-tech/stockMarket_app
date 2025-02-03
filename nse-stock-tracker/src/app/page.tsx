@@ -1,94 +1,73 @@
+"use client";
+import { useState, useEffect } from "react";
+import Head from "next/head";
 
-// pages/index.js
-"use client"
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
+const DEFAULT_STOCKS: string[] = ["RELIANCE", "TCS", "INFY"];
+const API_BASE_URL = "http://localhost:3000"; // Update this
 
-const DEFAULT_STOCKS = ['RELIANCE', 'TCS', 'INFY'];
-const API_BASE_URL = 'http://localhost:3000';
-
-// const API_BASE_URL = '/api/batch-stocks'; // Update this
+interface StockData {
+  symbol: string;
+  lastPrice: number | null;
+  change: number | null;
+  pChange: number | null;
+  timestamp: string | null;
+  error?: string;
+}
 
 export default function Home() {
-  const [stocks, setStocks] = useState(DEFAULT_STOCKS);
-  const [stockData, setStockData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(10);
-  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
-  const [newStock, setNewStock] = useState('');
+  const [stocks, setStocks] = useState<string[]>(DEFAULT_STOCKS);
+  const [stockData, setStockData] = useState<StockData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<number>(10);
+  const [isAutoRefresh, setIsAutoRefresh] = useState<boolean>(false);
+  const [newStock, setNewStock] = useState<string>("");
 
   const fetchStockData = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/batch-stock-prices`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbols: stocks }),
       });
-      
-      if (!response.ok) throw new Error('Failed to fetch stock data');
-      
-      const data = await response.json();
+
+      if (!response.ok) throw new Error("Failed to fetch stock data");
+
+      const data: StockData[] = await response.json();
       setStockData(data);
       setError(null);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-  // const fetchStockData = async () => {
-  //   try {
-  //     const response = await fetch(API_BASE_URL, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ symbols: stocks }),
-  //     });
-      
-  //     if (!response.ok) throw new Error('Failed to fetch stock data');
-      
-  //     const data = await response.json();
-  //     setStockData(data);
-  //     setError(null);
-  //   } catch (err) {
-  //     setError(err.message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
   useEffect(() => {
     fetchStockData();
-
     if (isAutoRefresh) {
       const interval = setInterval(fetchStockData, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
   }, [stocks, isAutoRefresh, refreshInterval]);
 
-  const handleAddStock = (e) => {
+  const handleAddStock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newStock && !stocks.includes(newStock.toUpperCase())) {
-      setStocks([...stocks, newStock.toUpperCase()]);
-      setNewStock('');
+    const upperStock = newStock.trim().toUpperCase();
+    if (upperStock && !stocks.includes(upperStock)) {
+      setStocks([...stocks, upperStock]);
+      setNewStock("");
     }
   };
 
-  const handleRemoveStock = (stockToRemove) => {
-    setStocks(stocks.filter(stock => stock !== stockToRemove));
+  const handleRemoveStock = (stockToRemove: string) => {
+    setStocks(stocks.filter((stock) => stock !== stockToRemove));
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(price);
+  const formatPrice = (price: number | null) => {
+    if (price === null) return "N/A";
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(price);
   };
 
   return (
@@ -99,9 +78,7 @@ export default function Home() {
       </Head>
 
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          NSE Stock Price Tracker
-        </h1>
+        <h1 className="text-3xl font-bold text-center mb-8">NSE Stock Price Tracker</h1>
 
         {/* Controls */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -113,17 +90,14 @@ export default function Home() {
               placeholder="Enter stock symbol (e.g., RELIANCE)"
               className="flex-1 p-2 border rounded"
             />
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
+            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
               Add Stock
             </button>
           </form>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className='text-gray-700'>Refresh Interval (seconds):</label>
+              <label className="text-gray-700">Refresh Interval (seconds):</label>
               <input
                 type="number"
                 min="5"
@@ -136,19 +110,12 @@ export default function Home() {
 
             <button
               onClick={() => setIsAutoRefresh(!isAutoRefresh)}
-              className={`px-4 py-2 rounded ${
-                isAutoRefresh 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-green-500 hover:bg-green-600'
-              } text-white`}
+              className={`px-4 py-2 rounded ${isAutoRefresh ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"} text-white`}
             >
-              {isAutoRefresh ? 'Stop Auto-Refresh' : 'Start Auto-Refresh'}
+              {isAutoRefresh ? "Stop Auto-Refresh" : "Start Auto-Refresh"}
             </button>
 
-            <button
-              onClick={fetchStockData}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
+            <button onClick={fetchStockData} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
               Refresh Now
             </button>
           </div>
@@ -166,62 +133,35 @@ export default function Home() {
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Symbol
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Change
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  % Change
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Change</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Change</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center">
+                  <td colSpan={6} className="px-6 py-4 text-center">
                     Loading...
                   </td>
                 </tr>
               ) : (
                 stockData.map((stock) => (
                   <tr key={stock.symbol}>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                      {stock.symbol}
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{stock.symbol}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{formatPrice(stock.lastPrice)}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap ${stock.change && stock.change > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatPrice(stock.change)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                      {stock.lastPrice ? formatPrice(stock.lastPrice) : 'N/A'}
+                    <td className={`px-6 py-4 whitespace-nowrap ${stock.pChange && stock.pChange > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {stock.pChange ? `${stock.pChange.toFixed(2)}%` : "N/A"}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap ${
-                      stock.change > 0 ? 'text-green-600' : 
-                      stock.change < 0 ? 'text-red-600' : ''
-                    }`}>
-                      {stock.change ? formatPrice(stock.change) : 'N/A'}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap ${
-                      stock.pChange > 0 ? 'text-green-600' : 
-                      stock.pChange < 0 ? 'text-red-600' : ''
-                    }`}>
-                      {stock.pChange ? `${stock.pChange.toFixed(2)}%` : 'N/A'}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{stock.timestamp || "N/A"}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {stock.timestamp || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleRemoveStock(stock.symbol)}
-                        className="text-red-600 hover:text-red-900"
-                      >
+                      <button onClick={() => handleRemoveStock(stock.symbol)} className="text-red-600 hover:text-red-900">
                         Remove
                       </button>
                     </td>
